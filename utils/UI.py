@@ -6,6 +6,8 @@ from PIL import Image, ImageTk
 from pytorch_grad_cam.utils.image import show_cam_on_image
 import dill
 
+# TODO: close the window fix
+# TODO: image size fix
 class CamUI:
     def __init__(self, grayscale, image_float_array, cur_image):
         self.grayscale = grayscale
@@ -16,13 +18,12 @@ class CamUI:
         self.modified_image = show_cam_on_image(self.image_float_array, self.grayscale, use_rgb=True)
         self.neighborhood_size = 25
         self.adjustment_scale = 0.3
-        # if not exist cache folder, create one, use os
         self.img_dst_path = "./cache/modified_image.png"
         self.mask_pkl_path = "./cache/modified_mask.pkl"
 
     def run_UI(self):
         def update_heatmap(x, y, increase):
-            # Define the size of the neighborhood (you can adjust this as needed).
+            # Define the size of the neighborhood.
             self.neighborhood_size = int(neigh_scale.get())
             self.adjustment_scale = int(adj_scale.get()) / 100
             # Iterate over a neighborhood around the clicked point.
@@ -35,13 +36,15 @@ class CamUI:
                     if 0 <= new_x < self.width and 0 <= new_y < height and distance <= self.neighborhood_size:
                         # Calculate the adjustment factor based on distance from the center.
                         adjustment_factor = 1.0 - distance / self.neighborhood_size
-                        adjustment_factor *= self.adjustment_scale  # Adjust this factor for the desired effect.
+                        # Adjust this scale for the desired effect.
+                        adjustment_factor *= self.adjustment_scale
 
                         if increase:
                             self.grayscale[new_y, new_x] = min(self.grayscale[new_y, new_x] + adjustment_factor, 1.0)
                         else:
                             self.grayscale[new_y, new_x] = max(self.grayscale[new_y, new_x] - adjustment_factor, 0.0)
 
+            # Generate new feature img
             modified_cam = self.grayscale
             self.modified_image = show_cam_on_image(self.image_float_array, modified_cam, use_rgb=True)
             modified_image_tk = ImageTk.PhotoImage(Image.fromarray(self.modified_image))
@@ -51,10 +54,10 @@ class CamUI:
 
         # Create a Tkinter window.
         root = tk.Tk()
-        root.title("GradCAM Heatmap Modification")
+        root.title("Feature Map Modification")
         height = self.image_float_array.shape[0]
         width = self.image_float_array.shape[1]
-        root.geometry(f"{width + 10}x{height + 250}")
+        root.geometry(f"{width + 30}x{height + 400}")
 
         # Create a label to display the image.
         label = tk.Label(root)
@@ -66,7 +69,6 @@ class CamUI:
         label.image = initial_image
 
         def save_image():
-            # global self.modified_image
             if self.modified_image is not None:
                 if self.img_dst_path:
                     dump_img = Image.fromarray(self.modified_image)
@@ -76,29 +78,36 @@ class CamUI:
                     root.destroy()
                 else:
                     messagebox.showerror("Error", "Please retry")
-                    # raise ValueError("Please specify the path to save the image")
 
         elv36 = tkFont.Font(family='Helvetica', size=20, weight='bold')
+
+        # TIPS
+        tips = tk.Label(root, height=5, width=width)
+        tips['font'] = elv36
+        tips['text'] = "Left click to increase the heatmap\nright click to decrease the heatmap"
+        tips.pack()
+
+        # Neighbourhood size scale bar
         neigh_scale = tk.Scale(root, from_=10, to=150, orient=tk.HORIZONTAL, label="Pen Size", length=200)
         neigh_scale['font'] = elv36
         neigh_scale.set(25)
         neigh_scale.pack()
 
+        # Adjustment factor scale bar
         adj_scale = tk.Scale(root, from_=1, to=100, orient=tk.HORIZONTAL, label="Pen Strength", length=200)
         adj_scale['font'] = elv36
         adj_scale.set(30)
         adj_scale.pack()
 
         helv36 = tkFont.Font(family='Helvetica', size=20, weight='bold')
+        # Save button
         save_button = tk.Button(root, text="Save", command=save_image, height=10, width=20)
         save_button['font'] = helv36
         save_button.pack()
 
-
-
-
-        # # Create a function to handle mouse clicks.
-        def on_canvas_click(event):
+        # function to handle mouse clicks.
+        # left click to increase, right click to decrease
+        def on_canvas_left_click(event):
             x, y = event.x, event.y
             update_heatmap(x, y, increase=True)
 
@@ -108,11 +117,9 @@ class CamUI:
 
         # Bind mouse click events to the label (image).
         label.focus_set()
-        label.bind("<B1-Motion>", on_canvas_click)
+        label.bind("<B1-Motion>", on_canvas_left_click)
         label.bind("<B3-Motion>", on_canvas_right_click)
 
-        # Initialize the grayscale map.
-        # Run the Tkinter main loop.
         root.mainloop()
 
     def return_dst_path(self):

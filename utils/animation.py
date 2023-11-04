@@ -4,18 +4,23 @@ import matplotlib.pyplot as plt
 import copy
 
 def matplotlib_animation(img_path, recorded_width_seam, recorded_height_seam):
+    """
+    :param img_path: path of the original image
+    :param recorded_width_seam: seams moved in vertical direction
+    :param recorded_height_seam: seams moved in horizontal direction
+    """
     img_array = np.array(Image.open(img_path))
     original_width = img_array.shape[1]
     original_height = img_array.shape[0]
     width = original_width
     height = original_height
     plt.ion()
-    # plt.title('Seam Carving Visualization')
     figure, ax = plt.subplots()
     im = ax.imshow(img_array.astype('uint8'))
     white_column = None
     for idx in range(len(recorded_width_seam)):
         width -= 1
+        # Fill the removed column with white column
         white_column = np.full((height, original_width - width, 3), (255, 255, 255), dtype=np.uint8)
         if original_width - width == 1:
             white_column_2 = None
@@ -35,7 +40,6 @@ def matplotlib_animation(img_path, recorded_width_seam, recorded_height_seam):
         figure.canvas.draw()
         figure.canvas.flush_events()
 
-        # Fill the white the space
         img_array = new_img.copy()
         temp_arr = np.append(copy.deepcopy(new_img), white_column, axis=1)
         im.set_data(temp_arr.astype('uint8'))
@@ -48,6 +52,7 @@ def matplotlib_animation(img_path, recorded_width_seam, recorded_height_seam):
 
     for idx in range(len(recorded_height_seam)):
         width -= 1
+        # Fill the removed row with white row
         white_row = np.full((original_width - width, height, 3), (255, 255, 255), dtype=np.uint8)
         if original_width - width == 1:
             white_row_2 = None

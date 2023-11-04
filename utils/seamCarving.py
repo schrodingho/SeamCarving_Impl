@@ -9,7 +9,8 @@ class SeamCarving:
         self.feature_map = feature_map
         self.energy_map = np.empty((self.height, self.width))
         self.calculate_energy_map()
-        self.energy_map = np.multiply(self.energy_map, self.feature_map)
+        # self.energy_map = np.multiply(self.energy_map, self.feature_map)
+        self.energy_map[np.where(self.feature_map >= 0.5)] = self.max_energy
         self.energy_map[[0, -1], :] = self.max_energy
         self.energy_map[0, 0] = self.max_energy + 10
         self.energy_map[:, [0, -1]] = self.max_energy

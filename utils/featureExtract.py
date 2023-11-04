@@ -5,16 +5,16 @@ from PIL import Image
 import torch
 from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.image import show_cam_on_image
-from torchvision.models import resnet50
-
+from torchvision.models import vgg13_bn
 """
-Step 1 -> Step 3
+Step 2: Run pre-trained CNN VGG13_bn
+Step 3: Extract feature map using Grad-CAM (refer to: https://github.com/jacobgil/pytorch-grad-cam)
+Step 4: Run UI to modify the feature map
 """
-
 def extractFeature(input_img_path):
     """
     :param input_img_path: the path of the image
-    :return:
+    :return: feat_img_path, mask_pkl_path
     """
     image = np.array(Image.open(input_img_path))
     image_float_np = np.float32(image) / 255
@@ -22,11 +22,13 @@ def extractFeature(input_img_path):
         torchvision.transforms.ToTensor(),
     ])
     input_tensor = transform(image)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     input_tensor = input_tensor.unsqueeze(0)
 
-    model = resnet50(pretrained=True)
-    target_layers = [model.layer4[-1]]
+    # Load Pretrained CNN model VGG13_bn
+    model = vgg13_bn(pretrained=True)
+    target_layers = [model.features[-1]]
+
+    # Run gradcam
     cam = GradCAM(model=model, target_layers=target_layers)
     targets = None
     grayscale_cam = cam(input_tensor=input_tensor, targets=targets)
@@ -34,13 +36,14 @@ def extractFeature(input_img_path):
     visualization = show_cam_on_image(image_float_np, grayscale_cam, use_rgb=True)
 
     cur = Image.fromarray(visualization)
+    # Run UI to modify feature map
     ui = CamUI(grayscale_cam, image_float_np, cur)
     ui.run_UI()
     # TODO: cache folder should be created
     # TODO: block this if not saved
-    img_dst_path, mask_pkl_path = ui.return_dst_path()
+    feat_img_path, mask_pkl_path = ui.return_dst_path()
 
-    return img_dst_path, mask_pkl_path
+    return feat_img_path, mask_pkl_path
 
 # if __name__ == '__main__':
 #     input_img_path = './images/baseline.png'
