@@ -1,169 +1,125 @@
 import numpy as np
-# TODO: rewrite the code
-# TODO: new energy map
-class SeamCarve():
-    max_energy = 255
-    def __init__(self, img, img_energy):
-        self.arr = img.astype(int)
-        self.height, self.width = img.shape[:2]
-        self.grad_arr = img_energy
-        self.energy_arr = img_energy.astype(int)
-        self.energy_arr[[0, -1], :] = self.max_energy
-        self.energy_arr[0, 0] = 256
-        self.energy_arr[:, [0, -1]] = self.max_energy
+
+class SeamCarving:
+    def __init__(self, img_array, feature_map, mask=True):
+        self.height = img_array.shape[0]
+        self.width = img_array.shape[1]
+        self.img_array = img_array.astype(int)
+        self.max_energy = 100000
+        self.feature_map = feature_map
+        self.energy_map = np.empty((self.height, self.width))
+        self.calculate_energy_map()
+        self.energy_map = np.multiply(self.energy_map, self.feature_map)
+        self.energy_map[[0, -1], :] = self.max_energy
+        self.energy_map[0, 0] = self.max_energy + 10
+        self.energy_map[:, [0, -1]] = self.max_energy
         self.record_width_seam = []
         self.record_height_seam = []
-        self.indices = np.empty((self.height, self.width), dtype=object)
-        self.get_indices()
+        self.indices = self.create_indices(self.width, self.height)
 
-    def get_indices(self):
-        for i in range(self.height):
-            for j in range(self.width):
-                self.indices[i, j] = (i, j)
+    def run(self, new_width, new_height):
+        while new_width < self.width:
+            self.carve_seam(rotate=False)
+        while new_height < self.height:
+            self.rotate_array()
+            self.carve_seam(rotate=True)
+            self.rotate_array()
 
-    def is_border(self, i, j):
-        return (i == 0 or i == self.height - 1) or (j == 0 or j == self.width - 1)
-    def compute_energy(self, i, j):
-        if self.is_border(i, j):
-            return self.max_energy
+    def create_indices(self, width, height):
+        indices = np.empty((height, width), dtype=object)
+        for i in range(height):
+            for j in range(width):
+                indices[i, j] = (i, j)
+        return indices
 
-        b = abs(self.grad_arr[i - 1, j, 0] - self.grad_arr[i + 1, j, 0])
-        g = abs(self.grad_arr[i - 1, j, 1] - self.grad_arr[i + 1, j, 1])
-        r = abs(self.grad_arr[i - 1, j, 2] - self.grad_arr[i + 1, j, 2])
+    def calculate_energy_map(self):
+        left = np.roll(self.img_array, shift=(0, 1), axis=(0, 1))
+        right = np.roll(self.img_array, shift=(0, -1), axis=(0, 1))
+        up = np.roll(self.img_array, shift=(1, 0), axis=(0, 1))
+        down = np.roll(self.img_array, shift=(-1, 0), axis=(0, 1))
+        self.energy_map = np.sum(np.abs(left - right), axis=2) + np.sum(np.abs(up - down), axis=2)
 
-        b += abs(self.grad_arr[i, j - 1, 0] - self.grad_arr[i, j + 1, 0])
-        g += abs(self.grad_arr[i, j - 1, 1] - self.grad_arr[i, j + 1, 1])
-        r += abs(self.grad_arr[i, j - 1, 2] - self.grad_arr[i, j + 1, 2])
+    def recalc_energy_map(self, carved_seam):
+        for i, j in enumerate(carved_seam):
+            for k in range(j - 1, j + 1):
+                if k < 0 or k >= self.width:
+                    continue
+                left = self.img_array[i, (j - 1) % self.width]
+                right = self.img_array[i, (j + 1) % self.width]
+                up = self.img_array[(i - 1) % self.height, j]
+                down = self.img_array[(i + 1) % self.height, j]
+                self.energy_map[i, k] = np.sum(np.abs(left - right)) + np.sum(np.abs(up - down))
 
-        energy = b + g + r
-
-        return energy
-
-    def swapaxes(self):
-        self.energy_arr = np.swapaxes(self.energy_arr, 0, 1)
-        self.arr = np.swapaxes(self.arr, 0, 1)
-        # TODO: not sure whether it is correct
-        self.indices = np.swapaxes(self.indices, 0, 1)
-        self.height, self.width = self.width, self.height
-
-    def compute_energy_arr(self):
-        ### TODO: use my own energy map
-        self.energy_arr[[0, -1], :] = self.max_energy
-        self.energy_arr[:, [0, -1]] = self.max_energy
-
-        self.energy_arr[1:-1, 1:-1] = np.add.reduce(
-            np.abs(self.grad_arr[:-2, 1:-1] - self.grad_arr[2:, 1:-1]), -1)
-        self.energy_arr[1:-1, 1:-1] += np.add.reduce(
-            np.abs(self.grad_arr[1:-1, :-2] - self.grad_arr[1:-1, 2:]), -1)
-
-    def compute_seam(self, horizontal=False):
-        if horizontal:
-            self.swapaxes()
-
-        energy_sum_arr = np.empty_like(self.energy_arr)
-        # First row same as energy_arr
-        energy_sum_arr[0] = self.energy_arr[0]
-
+    def calc_seam(self):
+        energy_forward_map = np.zeros((self.height, self.width))
+        energy_forward_map[0, :] = self.energy_map[0, :]
         for i in range(1, self.height):
-            energy_sum_arr[i, :-1] = np.minimum(
-                energy_sum_arr[i - 1, :-1], energy_sum_arr[i - 1, 1:])
-            energy_sum_arr[i, 1:] = np.minimum(
-                energy_sum_arr[i, :-1], energy_sum_arr[i - 1, 1:])
-            energy_sum_arr[i] += self.energy_arr[i]
+            energy_forward_map[i, :-1] = np.minimum(energy_forward_map[i - 1, :-1], energy_forward_map[i - 1, 1:])
+            energy_forward_map[i, 1:] = np.minimum(energy_forward_map[i, :-1], energy_forward_map[i - 1, 1:])
+            energy_forward_map[i] += self.energy_map[i]
 
         seam = np.empty(self.height, dtype=int)
-        seam[-1] = np.argmin(energy_sum_arr[-1, :])
-        seam_energy = energy_sum_arr[-1, seam[-1]]
+        seam[-1] = np.argmin(energy_forward_map[-1, :])
 
         for i in range(self.height - 2, -1, -1):
             l, r = max(0, seam[i + 1] - 1), min(seam[i + 1] + 2, self.width)
-            seam[i] = l + np.argmin(energy_sum_arr[i, l: r])
+            seam[i] = l + np.argmin(energy_forward_map[i, l: r])
 
-        if horizontal:
-            self.swapaxes()
+        return seam
 
-        return (seam_energy, seam)
-
-    def carve(self, horizontal=False, seam=None, remove=True):
-        if horizontal:
-            self.swapaxes()
-
-        if seam is None:
-            seam = self.compute_seam()[1]
-
-        if remove:
-            self.width -= 1
-        else:
-            self.width += 1
-
-        new_arr = np.empty((self.height, self.width, 3))
-        new_energy_arr = np.empty((self.height, self.width))
-        # add indices
-        new_indices = np.empty((self.height, self.width), dtype=object)
-        mp_deleted_count = 0
+    def carve_seam(self, rotate=False):
+        seam = self.calc_seam()
+        self.width -= 1
+        tmp_img_array = np.empty((self.height, self.width, 3))
+        tmp_energy_map = np.empty((self.height, self.width))
+        tmp_indices = np.empty((self.height, self.width), dtype=object)
         removed_width_pixels = []
         removed_height_pixels = []
+
         for i, j in enumerate(seam):
-            if remove:
-                if horizontal:
-                    removed_height_pixels.append((i, j))
-                else:
-                    removed_width_pixels.append((i, j))
-
-                if self.energy_arr[i, j] < 0:
-                    mp_deleted_count += 1
-                new_energy_arr[i] = np.delete(
-                    self.energy_arr[i], j)
-                new_indices[i] = np.delete(self.indices[i], j)
-                # delete the j-th pixel in the i-th row
-                new_arr[i] = np.delete(self.arr[i], j, 0)
-
+            tmp_energy_map[i] = np.delete(
+                self.energy_map[i], j)
+            tmp_indices[i] = np.delete(self.indices[i], j)
+            tmp_img_array[i] = np.delete(self.img_array[i], j, 0)
+            if rotate:
+                removed_height_pixels.append((i, j))
             else:
-                new_energy_arr[i] = np.insert(
-                    self.energy_arr[i], j, 0, 0)
-                new_pixel = self.arr[i, j]
-                if not self.is_border(i, j):
-                    new_pixel = (self.arr[i, j - 1] + self.arr[i, j + 1]) // 2
-                # TODO: when new pixel is added, how to change the indices
-                placeholder = -1
-                new_indices[i] = np.insert(self.indices[i], j, placeholder, 0)
-                new_indices[i][j] = (i, j)
-                new_arr[i] = np.insert(self.arr[i], j, new_pixel, 0)
+                removed_width_pixels.append((i, j))
 
-        self.arr = new_arr
-        self.energy_arr = new_energy_arr
-        self.indices = new_indices
+        self.img_array = tmp_img_array
+        self.energy_map = tmp_energy_map
+        self.indices = tmp_indices
+        self.recalc_energy_map(seam)
 
-        if horizontal:
+        self.energy_map[[0, -1], :] = self.max_energy
+        self.energy_map[0, 0] = self.max_energy + 10
+        self.energy_map[:, [0, -1]] = self.max_energy
+
+        if rotate:
             self.record_height_seam.append(removed_height_pixels)
         else:
             self.record_width_seam.append(removed_width_pixels)
 
-        self.energy_arr[[0, -1], :] = self.max_energy
-        self.energy_arr[:, [0, -1]] = self.max_energy
-        self.energy_arr[0, 0] = 256
+    def rotate_array(self):
+        # counter-clockwise 90 degrees
+        self.height, self.width = self.width, self.height
+        self.img_array = np.rot90(self.img_array, 1, (0, 1))[::-1]
+        self.indices = np.rot90(self.indices, 1, (0, 1))[::-1]
+        self.energy_map = np.rot90(self.energy_map, 1, (0, 1))[::-1]
 
-        if horizontal:
-            self.swapaxes()
-
-        return mp_deleted_count
-
-    def resize(self, new_height=None, new_width=None):
-        if new_height is None:
-            new_height = self.height
-        if new_width is None:
-            new_width = self.width
-
-        while self.width != new_width:
-            self.carve(horizontal=False, remove=self.width > new_width)
-        while self.height != new_height:
-            self.carve(horizontal=True, remove=self.height > new_height)
-
-    def image(self):
-        return self.arr.astype(np.uint8)
+    def return_image(self):
+        return self.img_array.astype(np.uint8)
 
     def return_indices(self):
         return self.indices
 
     def return_removed_seam(self):
         return self.record_width_seam, self.record_height_seam
+
+
+
+
+
+
+
+

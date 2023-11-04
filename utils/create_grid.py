@@ -1,37 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
-def create_warping_grid(width, height):
-    # Build vertex buffer.
-    num_vertices = (width + 1) * (height + 1)
-    vertices = np.empty((num_vertices, 2), dtype=np.float32)
+from matplotlib.collections import LineCollection
 
-    # Fill the vertex buffer (vertices) with 2D coordinates of the pixel corners.
-    for y in range(height + 1):
-        for x in range(width + 1):
-            vertices[y * (width + 1) + x] = np.array([x, y], dtype=np.float32)
-
-    # Build index buffer.
-    num_pixels = width * height
-    num_triangles = num_pixels * 2
-    triangles = np.empty((num_triangles, 3), dtype=np.int32)
-
-    # Fill the index buffer (triangles) with indices pointing to the vertex buffer.
-    for y in range(height):
-        for x in range(width):
-            A = y * (width + 1) + x
-            B = y * (width + 1) + x + 1
-            C = (y + 1) * (width + 1) + x + 1
-            D = (y + 1) * (width + 1) + x
-            triangle1 = np.array([A, B, C], dtype=np.int32)
-            triangle2 = np.array([A, C, D], dtype=np.int32)
-            triangles[(y * width + x) * 2] = triangle1
-            triangles[(y * width + x) * 2 + 1] = triangle2
-
-    # Combine the vertex and index buffers into a mesh.
-    return vertices, triangles
-
-def create_pixel_center_grid(width, height):
+def create_grid_strategy_1(width, height):
     # Build vertex buffer.
     num_vertices = width * height
     vertices = np.empty((num_vertices, 2), dtype=np.float32)
@@ -61,7 +33,7 @@ def create_pixel_center_grid(width, height):
     # Combine the vertex and index buffers into a mesh.
     return vertices, triangles
 
-def create_pixel_center_grid(width, height, vertical=False):
+def create_grid_strategy_2(width, height):
     # Build vertex buffer.
     num_vertices = width * height
     vertices = np.empty((num_vertices, 2), dtype=np.float32)
@@ -75,42 +47,36 @@ def create_pixel_center_grid(width, height, vertical=False):
     num_pixels = (width - 1) * (height - 1)
     num_triangles = num_pixels * 2
 
-    if vertical:
-        triangles_h = np.empty((num_triangles, 3), dtype=np.int32)
-        triangles_v = np.empty((num_triangles, 3), dtype=np.int32)
-        for y in range(height - 1):
-            for x in range(width - 1):
-                A = y * width + x
-                B = y * width + x + 1
-                C = (y + 1) * width + x + 1
-                D = (y + 1) * width + x
-                triangle1 = np.array([A, B, C], dtype=np.int32)
-                triangle2 = np.array([A, C, D], dtype=np.int32)
-                triangle3 = np.array([D, A, B], dtype=np.int32)
-                triangle4 = np.array([D, B, C], dtype=np.int32)
-                triangles_h[(y * (width - 1) + x) * 2] = triangle1
-                triangles_h[(y * (width - 1) + x) * 2 + 1] = triangle2
-                triangles_v[(y * (width - 1) + x) * 2] = triangle3
-                triangles_v[(y * (width - 1) + x) * 2 + 1] = triangle4
-        # Combine the vertex and index buffers into a mesh.
-        return vertices, triangles_h, triangles_v
-    else:
-        triangles = np.empty((num_triangles, 3), dtype=np.int32)
 
-        # Fill the index buffer (triangles) with indices pointing to the vertex buffer.
-        for y in range(height - 1):
-            for x in range(width - 1):
-                A = y * width + x
-                B = y * width + x + 1
-                C = (y + 1) * width + x + 1
-                D = (y + 1) * width + x
-                triangle1 = np.array([A, B, C], dtype=np.int32)
-                triangle2 = np.array([A, C, D], dtype=np.int32)
-                triangles[(y * (width - 1) + x) * 2] = triangle1
-                triangles[(y * (width - 1) + x) * 2 + 1] = triangle2
+    triangles = np.empty((num_triangles, 3), dtype=np.int32)
 
-        # Combine the vertex and index buffers into a mesh.
-        return vertices, triangles
+    # Fill the index buffer (triangles) with indices pointing to the vertex buffer.
+    for y in range(height - 1):
+        for x in range(width - 1):
+            A = y * width + x
+            B = y * width + x + 1
+            C = (y + 1) * width + x + 1
+            D = (y + 1) * width + x
+            if x % 2 == 0:
+                if y % 2 == 0:
+                    triangle1 = np.array([A, B, C], dtype=np.int32)
+                    triangle2 = np.array([A, C, D], dtype=np.int32)
+                else:
+                    triangle1 = np.array([A, B, D], dtype=np.int32)
+                    triangle2 = np.array([B, C, D], dtype=np.int32)
+            else:
+                if y % 2 == 0:
+                    triangle1 = np.array([A, B, D], dtype=np.int32)
+                    triangle2 = np.array([B, C, D], dtype=np.int32)
+                else:
+                    triangle1 = np.array([A, B, C], dtype=np.int32)
+                    triangle2 = np.array([A, C, D], dtype=np.int32)
+
+            triangles[(y * (width - 1) + x) * 2] = triangle1
+            triangles[(y * (width - 1) + x) * 2 + 1] = triangle2
+
+    # Combine the vertex and index buffers into a mesh.
+    return vertices, triangles
 
 def create_indices(width, height):
     indices = np.empty((height, width), dtype=object)
@@ -167,7 +133,7 @@ def build_triangle_grid(width, height):
 
 
 
-def create_graph(width, height, vertices, triangles):
+def show_vertices(width, height, vertices, triangles):
     fig, ax = plt.subplots()
     for triangle in triangles:
         poly = Polygon(vertices[triangle], fill=None, edgecolor='black')
@@ -179,23 +145,53 @@ def create_graph(width, height, vertices, triangles):
 
     # Set aspect ratio to be equal so that the grid cells aren't distorted
     ax.set_aspect('equal')
-
-    # Show the plot
     plt.show()
 
 
-def test():
-    ## unit test
-    width = 5
-    height = 2
-    indices = create_indices(width, height)
-    indices_f = indices_flatten(indices)
-    vertices, triangles = create_pixel_center_grid(width, height)
+    # create_graph(width, height, vertices, triangles)seam_height
 
-    # tri2 = build_triangle_grid(width, height)
-    # print(len(tri2))
-    print(vertices.shape)
-    print(triangles.shape)
-    # create_graph(width, height, vertices, triangles)
+def grid_show():
+    # Create a figure and axis
+    width = 100
+    height = 100
+    vertices, triangles = create_grid_strategy_2(width, height)
 
-# test()
+    x_coords, y_coords = vertices[:, 0], vertices[:, 1]
+
+    # Plot the vertices as points
+    plt.scatter(x_coords, y_coords, s=1, color='k')
+
+    # Create a LineCollection for grid lines
+    lines = []
+    for y in range(height):
+        for x in range(width):
+            if x < width - 1:
+                lines.append([(x_coords[y * width + x], y_coords[y * width + x]),
+                              (x_coords[y * width + x + 1], y_coords[y * width + x + 1])])
+            if y < height - 1:
+                lines.append([(x_coords[y * width + x], y_coords[y * width + x]),
+                              (x_coords[(y + 1) * width + x], y_coords[(y + 1) * width + x])])
+
+                # Create a LineCollection from the lines and add it to the plot
+
+    lc = LineCollection(lines, color='k')
+    plt.gca().add_collection(lc)
+
+    for triangle_indices in triangles:
+        triangle = Polygon([vertices[triangle_indices[0]], vertices[triangle_indices[1]], vertices[triangle_indices[2]],
+                            vertices[triangle_indices[0]], ], closed=True, fill=None, edgecolor='k')
+        plt.gca().add_patch(triangle)
+
+    plt.grid()
+
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.gca().invert_yaxis()  # Invert the Y-axis
+    plt.gca().xaxis.set_ticks_position('top')  # Move the X-axis to the top
+
+    plt.xlabel('X-axis')
+    plt.ylabel('Y-axis')
+    plt.title('Grid Vertices')
+    plt.show()
+
+
+# grid_show()

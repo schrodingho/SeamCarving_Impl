@@ -14,27 +14,28 @@ class CamUI:
         self.width = image_float_array.shape[1]
         self.height = image_float_array.shape[0]
         self.modified_image = show_cam_on_image(self.image_float_array, self.grayscale, use_rgb=True)
+        self.neighborhood_size = 25
+        self.adjustment_scale = 0.3
         # if not exist cache folder, create one, use os
         self.img_dst_path = "./cache/modified_image.png"
         self.mask_pkl_path = "./cache/modified_mask.pkl"
 
-
     def run_UI(self):
         def update_heatmap(x, y, increase):
             # Define the size of the neighborhood (you can adjust this as needed).
-            neighborhood_size = 25
-
+            self.neighborhood_size = int(neigh_scale.get())
+            self.adjustment_scale = int(adj_scale.get()) / 100
             # Iterate over a neighborhood around the clicked point.
-            for i in range(-neighborhood_size, neighborhood_size + 1):
-                for j in range(-neighborhood_size, neighborhood_size + 1):
+            for i in range(-self.neighborhood_size, self.neighborhood_size + 1):
+                for j in range(-self.neighborhood_size, self.neighborhood_size + 1):
                     new_x = x + i
                     new_y = y + j
                     distance = np.sqrt(i ** 2 + j ** 2)
                     # Check if the new coordinates are within the image boundaries and within the circle.
-                    if 0 <= new_x < self.width and 0 <= new_y < height and distance <= neighborhood_size:
+                    if 0 <= new_x < self.width and 0 <= new_y < height and distance <= self.neighborhood_size:
                         # Calculate the adjustment factor based on distance from the center.
-                        adjustment_factor = 1.0 - distance / neighborhood_size
-                        adjustment_factor *= 0.5  # Adjust this factor for the desired effect.
+                        adjustment_factor = 1.0 - distance / self.neighborhood_size
+                        adjustment_factor *= self.adjustment_scale  # Adjust this factor for the desired effect.
 
                         if increase:
                             self.grayscale[new_y, new_x] = min(self.grayscale[new_y, new_x] + adjustment_factor, 1.0)
@@ -53,7 +54,7 @@ class CamUI:
         root.title("GradCAM Heatmap Modification")
         height = self.image_float_array.shape[0]
         width = self.image_float_array.shape[1]
-        root.geometry(f"{width + 10}x{height + 100}")
+        root.geometry(f"{width + 10}x{height + 250}")
 
         # Create a label to display the image.
         label = tk.Label(root)
@@ -67,7 +68,6 @@ class CamUI:
         def save_image():
             # global self.modified_image
             if self.modified_image is not None:
-                # self.img_dst_path = tk.filedialog.asksaveasfilename(defaultextension=".png")
                 if self.img_dst_path:
                     dump_img = Image.fromarray(self.modified_image)
                     dump_img.save(self.img_dst_path)
@@ -78,10 +78,24 @@ class CamUI:
                     messagebox.showerror("Error", "Please retry")
                     # raise ValueError("Please specify the path to save the image")
 
+        elv36 = tkFont.Font(family='Helvetica', size=20, weight='bold')
+        neigh_scale = tk.Scale(root, from_=10, to=150, orient=tk.HORIZONTAL, label="Pen Size", length=200)
+        neigh_scale['font'] = elv36
+        neigh_scale.set(25)
+        neigh_scale.pack()
+
+        adj_scale = tk.Scale(root, from_=1, to=100, orient=tk.HORIZONTAL, label="Pen Strength", length=200)
+        adj_scale['font'] = elv36
+        adj_scale.set(30)
+        adj_scale.pack()
+
         helv36 = tkFont.Font(family='Helvetica', size=20, weight='bold')
         save_button = tk.Button(root, text="Save", command=save_image, height=10, width=20)
         save_button['font'] = helv36
         save_button.pack()
+
+
+
 
         # # Create a function to handle mouse clicks.
         def on_canvas_click(event):
