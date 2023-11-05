@@ -6,8 +6,6 @@ from PIL import Image, ImageTk
 from pytorch_grad_cam.utils.image import show_cam_on_image
 import dill
 
-# TODO: close the window fix
-# TODO: image size fix
 class CamUI:
     def __init__(self, grayscale, image_float_array, cur_image):
         self.grayscale = grayscale
@@ -57,7 +55,7 @@ class CamUI:
         root.title("Feature Map Modification")
         height = self.image_float_array.shape[0]
         width = self.image_float_array.shape[1]
-        root.geometry(f"{width + 30}x{height + 400}")
+        root.geometry(f"{width + 40}x{height + 400}")
 
         # Create a label to display the image.
         label = tk.Label(root)
@@ -79,12 +77,17 @@ class CamUI:
                 else:
                     messagebox.showerror("Error", "Please retry")
 
+        def on_closing():
+            if messagebox.askokcancel("Quit", "Do you want to quit?\nIf the image is not saved, program cannot run."):
+                root.destroy()
+
         elv36 = tkFont.Font(family='Helvetica', size=20, weight='bold')
+
 
         # TIPS
         tips = tk.Label(root, height=5, width=width)
         tips['font'] = elv36
-        tips['text'] = "Left click to increase the heatmap\nright click to decrease the heatmap"
+        tips['text'] = "Left click mouse to increase the heatmap\nright click mouse to decrease the heatmap"
         tips.pack()
 
         # Neighbourhood size scale bar
@@ -120,6 +123,7 @@ class CamUI:
         label.bind("<B1-Motion>", on_canvas_left_click)
         label.bind("<B3-Motion>", on_canvas_right_click)
 
+        root.protocol("WM_DELETE_WINDOW", on_closing)
         root.mainloop()
 
     def return_dst_path(self):

@@ -51,7 +51,6 @@ def main(args):
     # save the feature map
     image_width = original_img.shape[1]
     image_height = original_img.shape[0]
-    # TODO: fix the black pixel(border check)
     # initialize the seam carving runner
 
     seamCarvingRunner = SeamCarving(original_img, feature_map, mask_t=mask_t)
@@ -70,7 +69,6 @@ def main(args):
     # get the carved image and show it
     carved_img_array = seamCarvingRunner.return_image()
     carved_img = Image.fromarray(carved_img_array)
-    # TODO: multiprocessing animation and interpolation
     # get the original indices of each pixel in the carved image
     carved_indices = seamCarvingRunner.return_indices()
 

@@ -14,8 +14,19 @@
 ## Usage
 1. Easy running (See all implemented features with the example image) 
 ```bash
+# Dogcat example (Please run in the terminal))
 python main.py --image ./Example/dogcat.jpg --text "Find the cat" --mask_t 0.5 --new_width 539 --new_height 380 --animation --strategy --save_grid 30
 ```
+- Other examples:
+```bash
+# Tower example (carve vertically without text)
+python main.py --image ./Example/tower.png --mask_t 0.5 --new_width 400 --new_height 968
+# Boat example (with text)
+python main.py --image ./Example/pietro.jpg --text "Boat on the river" --mask_t 0.5 --new_width 400 --new_height 400
+# Boat example (without text)
+python main.py --image ./Example/pietro.jpg --mask_t 0.5 --new_width 400 --new_height 400
+```
+
 2. Customization
 ```bash
 python main.py --image <input_image_path> [--text <input_text>] [--mask_t <mask_threshold>] --new_width <new_width> --new_height <new_height> [--animation] [--strategy] [--save_grid <fig_size>]
@@ -24,7 +35,7 @@ python main.py --image <input_image_path> [--text <input_text>] [--mask_t <mask_
   - Example: `--image ./Example/dogcat.jpg`
 - `--text`: The text for finding the object in the image (optional, if not provided, the feature map is from the VGG)
   - Example: `--text "Find the dog"`
-- `--mask_t`: The threshold for the mask (default: 0.5, range: (0, 1)) (optional, if not provided, the seam carving energy map will be the generated feature map)
+- `--mask_t`: The threshold for the mask (default: 0.5, range: (0, 1)) (optional, recommend to use, if not provided, the seam carving energy map will be the generated feature map)
   - Example: `--mask_t 0.6`
 - `--new_width`: The new width of the image (required, should be smaller than the original width)
   - Example: `--new_width 400`
@@ -41,7 +52,8 @@ python main.py --image <input_image_path> [--text <input_text>] [--mask_t <mask_
 - [`UI.py`](./utils/UI.py): Modify the feature map by using tkinter. (Basic feature 4)
 - [`seam_carving.py`](./utils/seam_carving.py): The implementation of seam carving. (Basic feature 5)
 - [`create_grid.py`](./utils/animation.py): Create pixel grid and vectorize remaining pixels by replacing them by triangles pairs. (Basic feature 6)
-  - this file also includes another strategy for the orientation of the triangle diagonals (Extended feature 3)
+  - This file also includes another strategy for the orientation of the triangle diagonals. (Extended feature 3)
+  - This file also contains the drawing of the triangle grid.
 - [`move_back.py`](./utils/move_back.py): Move the vectors back the original positions by uncarving the previously removed columns(rows) (Basic feature 7)
 - [`interpolation.py`](./utils/interpolation.py): Interpolate the pixel values of the image by using the vectorized pixels. (Basic feature 8)
 - [`animation.py`](./utils/animation.py): Visualize the steps of the carving by using matplotlib. (Extended feature 1)
