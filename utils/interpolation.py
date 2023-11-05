@@ -4,6 +4,8 @@ import numpy as np
 Step 8: Interpolation
 Mainly follow the method and code from Assignment 3 (Image Warping)
 """
+
+#TODO: faster implementation
 def sample_bilinear(image, pos_px, height, width):
     x0 = int(pos_px[1])
     y0 = int(pos_px[0])

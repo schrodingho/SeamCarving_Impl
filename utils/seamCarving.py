@@ -34,22 +34,30 @@ class SeamCarving:
         return indices
 
     def calculate_energy_map(self):
+        # self.energy_map[[0, -1], :] = self.max_energy
+        # self.energy_map[:, [0, -1]] = self.max_energy
+        #
+        # self.energy_map[1:-1, 1:-1] = np.add.reduce(
+        #     np.abs(self.img_array[:-2, 1:-1] - self.img_array[2:, 1:-1]), -1)
+        # self.energy_map[1:-1, 1:-1] += np.add.reduce(
+        #     np.abs(self.img_array[1:-1, :-2] - self.img_array[1:-1, 2:]), -1)
         left = np.roll(self.img_array, shift=(0, 1), axis=(0, 1))
         right = np.roll(self.img_array, shift=(0, -1), axis=(0, 1))
         up = np.roll(self.img_array, shift=(1, 0), axis=(0, 1))
         down = np.roll(self.img_array, shift=(-1, 0), axis=(0, 1))
         self.energy_map = np.sum(np.abs(left - right), axis=2) + np.sum(np.abs(up - down), axis=2)
-
+    def is_border(self, i, j):
+        return (i == 0 or i == self.height - 1) or (j == 0 or j == self.width - 1)
     def recalc_energy_map(self, carved_seam):
         for i, j in enumerate(carved_seam):
-            for k in range(j - 1, j + 1):
-                if k < 0 or k >= self.width:
+            for neigh in range(j - 1, j + 1):
+                if neigh < 0 or neigh >= self.width:
                     continue
-                left = self.img_array[i, (j - 1) % self.width]
-                right = self.img_array[i, (j + 1) % self.width]
-                up = self.img_array[(i - 1) % self.height, j]
-                down = self.img_array[(i + 1) % self.height, j]
-                self.energy_map[i, k] = np.sum(np.abs(left - right)) + np.sum(np.abs(up - down))
+                left = self.img_array[i, (neigh - 1) % self.width]
+                right = self.img_array[i, (neigh + 1) % self.width]
+                up = self.img_array[(i - 1) % self.height, neigh]
+                down = self.img_array[(i + 1) % self.height, neigh]
+                self.energy_map[i, neigh] = np.sum(np.abs(left - right)) + np.sum(np.abs(up - down))
 
     def calc_seam(self):
         energy_forward_map = np.zeros((self.height, self.width))

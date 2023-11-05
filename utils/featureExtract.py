@@ -39,13 +39,8 @@ def extractFeature(input_img_path):
     # Run UI to modify feature map
     ui = CamUI(grayscale_cam, image_float_np, cur)
     ui.run_UI()
-    # TODO: cache folder should be created
-    # TODO: block this if not saved
+
     feat_img_path, mask_pkl_path = ui.return_dst_path()
 
     return feat_img_path, mask_pkl_path
-
-# if __name__ == '__main__':
-#     input_img_path = './images/baseline.png'
-#     print(extractFeature(input_img_path))
 

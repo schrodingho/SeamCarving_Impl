@@ -52,6 +52,7 @@ def CLIP_Extractor(input_img_path, input_text):
     return img_dst_path, mask_pkl_path
 
 
+# TODO: delete this
 def normalize(x):
     x = x - x.min()
     if x.max() > 0:

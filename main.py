@@ -8,14 +8,16 @@ from utils.animation import *
 from utils.move_back import *
 import dill
 import os
+output_path = "./output"
+cache_path = "./cache"
+
 def main(args):
     # arguments parsing
     input_text = args.text
     use_feature_map_as_mask = args.mask
 
     # if results and cache folders not exist, create them
-    output_path = "./output"
-    cache_path = "./cache"
+
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
@@ -55,15 +57,15 @@ def main(args):
     seamCarvingRunner = SeamCarving(original_img, feature_map)
 
     # seam carving legality check
-    if (args.seam_h_num >= image_width) or (args.seam_v_num >= image_height):
-        raise ValueError("Seam number should be smaller than the width or the height of the image")
-    if (args.seam_h_num < 0) or (args.seam_v_num < 0):
-        raise ValueError("Seam number should be positive")
+    if (args.new_width > image_width) or (args.new_height > image_height):
+        raise ValueError("New image size (width and height) should not be larger than the original image size (width and height)")
+    if (args.new_width < 0) or (args.new_height < 0):
+        raise ValueError("New image size (width and height) should be positive")
 
     print("[Step 5]: Run seam carving...")
 
     # run seam carving with new height and width
-    seamCarvingRunner.run(new_height=image_height - args.seam_v_num, new_width=image_width - args.seam_h_num)
+    seamCarvingRunner.run(new_height=args.new_height, new_width=args.new_width)
 
     # get the carved image and show it
     carved_img_array = seamCarvingRunner.return_image()
@@ -130,8 +132,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Seam Carving")
     parser.add_argument('--image', type=str, required=False, help='Input image path', default='./Example/dogcat.jpg')
     parser.add_argument('--text', type=str, required=False, help='Input the text', default=None)
-    parser.add_argument('--seam_h_num', type=str, required=False, help='Seam cut number in horizontal direction', default=100)
-    parser.add_argument('--seam_v_num', type=str, required=False, help='Seam cut number in vertical direction', default=100)
+    parser.add_argument('--new_width', type=str, required=False, help='Seam cut number in horizontal direction', default=539)
+    parser.add_argument('--new_height', type=str, required=False, help='Seam cut number in vertical direction', default=380)
     parser.add_argument('--mask', type=bool, required=False, help='Use feature map as mask', default=True)
     parser.add_argument('--animation', action='store_true', help='Show the animation of seam carving')
     parser.add_argument('--strategy', action='store_true', help='New strategy for orientation of the triangle diagonals')
