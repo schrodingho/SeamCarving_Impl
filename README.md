@@ -5,8 +5,9 @@
 3. Activate the environment: `conda activate final_project`
 4. Install more packages via pip (Trying to avoid the conda-forge channel):
     - `pip install imageio-ffmpeg==0.4.7`
-    - `pip install opencv-python-headless==4.8.1.78`
     - `pip install grad-cam`
+    - `pip uninstall opencv-python` (Please uninstall the opencv-python from grad-cam first, otherwise it will cause some unexpected problems) 
+    - `pip install opencv-python-headless`
     - `pip install ftfy regex tqdm`
     - `pip install git+https://github.com/openai/CLIP.git`
 5. When you run the program, the pretrained model will be downloaded automatically
@@ -22,9 +23,9 @@ python main.py --image ./Example/dogcat.jpg --text "Find the cat" --mask_t 0.5 -
 # Tower example (carve vertically without text)
 python main.py --image ./Example/tower.png --mask_t 0.5 --new_width 400 --new_height 968
 # Boat example (with text)
-python main.py --image ./Example/pietro.jpg --text "Boat on the river" --mask_t 0.5 --new_width 400 --new_height 400
+python main.py --image ./Example/pietro.jpg --text "Boat on the river" --mask_t 0.5 --new_width 500 --new_height 400
 # Boat example (without text)
-python main.py --image ./Example/pietro.jpg --mask_t 0.5 --new_width 400 --new_height 400
+python main.py --image ./Example/pietro.jpg --mask_t 0.5 --new_width 500 --new_height 400
 ```
 
 2. Customization
