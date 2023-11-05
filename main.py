@@ -1,7 +1,7 @@
 import argparse
-from utils.featureExtract import *
-from utils.additionalExtractor import CLIP_Extractor
-from utils.seamCarving import SeamCarving
+from utils.feat_extractor import *
+from utils.clip_extractor import CLIP_Extractor
+from utils.seam_carving import SeamCarving
 from utils.create_grid import *
 from utils.interpolation import *
 from utils.animation import *
@@ -14,7 +14,7 @@ cache_path = "./cache"
 def main(args):
     # arguments parsing
     input_text = args.text
-    use_feature_map_as_mask = args.mask
+    mask_t = args.mask_t
 
     # if results and cache folders not exist, create them
 
@@ -32,14 +32,14 @@ def main(args):
 
     if input_text:
         print("[Extended feature 2]: Using CLIP model to extract the feature map based on the text...")
-        feature_map_path, mask_path = CLIP_Extractor(args.image, input_text)
+        feature_map_path, mask_path = CLIP_Extractor(args.image, input_text, output_path)
     else:
         # extract features based on a pretrained CNN model and use Grad-CAM to get the feature map
-        feature_map_path, mask_path = extractFeature(args.image)
+        feature_map_path, mask_path = extractFeature(args.image, output_path)
 
-    Image.open(feature_map_path).save(f"{output_path}/step_2_3_4_feature_map.png")
+    Image.open(feature_map_path).save(f"{output_path}/step_2_3_4_mod_feat_map.png")
 
-    if use_feature_map_as_mask:
+    if mask_t is not None:
         # use the feature map as the mask, calculate the energy map based on the original image
         feature_map = dill.load(open(mask_path, "rb"))
     else:
@@ -54,7 +54,7 @@ def main(args):
     # TODO: fix the black pixel(border check)
     # initialize the seam carving runner
 
-    seamCarvingRunner = SeamCarving(original_img, feature_map)
+    seamCarvingRunner = SeamCarving(original_img, feature_map, mask_t=mask_t)
 
     # seam carving legality check
     if (args.new_width > image_width) or (args.new_height > image_height):
@@ -97,10 +97,10 @@ def main(args):
         # Default strategy
         vertices, triangles = create_grid_strategy_1(carved_img_width, carved_img_height)
 
-    if args.show_triangle:
-        # Not Recommend to do this (SLOW!!!!)
+    if args.save_grid is not None:
+        # could be slow
         print("**Draw the triangles grid map...")
-        grid_show(vertices, triangles, output_path, figure_size=50, original=True)
+        grid_show(vertices, triangles, output_path, figure_size=args.save_grid, original=True)
 
     print("[Step 7]: Move the pixels back to the original positions...")
     # put the carved image pixels into original image size
@@ -108,10 +108,10 @@ def main(args):
 
     Image.fromarray(original_changed).save(f"{output_path}/step_7_move_pixels_back_to_original_pos.png")
 
-    if args.show_triangle:
-        # Not Recommend to do this (SLOW!!!!)
+    if args.save_grid is not None:
+        # could be slow
         print(" **Draw the moved triangles grid map...")
-        grid_show(moved_vertices, triangles, output_path, figure_size=50, original=False)
+        grid_show(moved_vertices, triangles, output_path, figure_size=args.save_grid, original=False)
 
 
     print("[Step 8, 9]: Interpolate the image and save the final result...")
@@ -130,13 +130,13 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Seam Carving")
-    parser.add_argument('--image', type=str, required=False, help='Input image path', default='./Example/dogcat.jpg')
+    parser.add_argument('--image', type=str, required=True, help='Input image path', default='./Example/dogcat.jpg')
     parser.add_argument('--text', type=str, required=False, help='Input the text', default=None)
-    parser.add_argument('--new_width', type=str, required=False, help='Seam cut number in horizontal direction', default=539)
-    parser.add_argument('--new_height', type=str, required=False, help='Seam cut number in vertical direction', default=380)
-    parser.add_argument('--mask', type=bool, required=False, help='Use feature map as mask', default=True)
+    parser.add_argument('--new_width', type=int, required=True, help='Seam cut number in horizontal direction', default=539)
+    parser.add_argument('--new_height', type=int, required=True, help='Seam cut number in vertical direction', default=380)
+    parser.add_argument('--mask_t', type=float, required=False, help='Use feature map as mask, the threshold should be 0 < t < 1', default=None)
     parser.add_argument('--animation', action='store_true', help='Show the animation of seam carving')
     parser.add_argument('--strategy', action='store_true', help='New strategy for orientation of the triangle diagonals')
-    parser.add_argument('--show_triangle', action='store_true', help='Show the triangles grid map')
+    parser.add_argument('--save_grid', type=int, required=False, help='Save the triangles grid map', default=None)
     args = parser.parse_args()
     main(args)

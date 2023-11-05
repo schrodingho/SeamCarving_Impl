@@ -69,8 +69,7 @@ def gradCAM(
         # Global average pool gradient across spatial dimension
         # to obtain importance weights.
         alpha = grad.mean(dim=(2, 3), keepdim=True)
-        # Weighted combination of activation maps over channel
-        # dimension.
+        # Weighted combination of activation maps over channel dimension.
         gradcam = torch.sum(act * alpha, dim=1, keepdim=True)
         # We only want neurons with positive influence so we
         # clamp any negative ones.

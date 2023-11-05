@@ -40,5 +40,6 @@ def indices_changes(indices):
     indices = indices.flatten()
     indices = [list(t) for t in indices]
 
+    # calculate the displacement of each pixel
     indices_changes = indices - concatenated_indices
     return indices_changes

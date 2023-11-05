@@ -1,11 +1,9 @@
 import numpy as np
-
 """
 Step 8: Interpolation
 Mainly follow the method and code from Assignment 3 (Image Warping)
 """
 
-#TODO: faster implementation
 def sample_bilinear(image, pos_px, height, width):
     x0 = int(pos_px[1])
     y0 = int(pos_px[0])
@@ -83,6 +81,14 @@ def barycentric_coordinates(p, a, b, c):
     return bc
 
 def triangle_interpolation(triangles, src_vertices, dst_vertices, original_img_changed, resized_img):
+    """
+    :param triangles: indices of each triangle
+    :param src_vertices: Original vertices
+    :param dst_vertices: Moved vertices
+    :param original_img_changed: original image array filled with carved pixels
+    :param resized_img: carved image array
+    :return: interpolated image
+    """
     print("*Interpolation Running (may take longer time)...")
     height = resized_img.shape[0]
     width = resized_img.shape[1]
@@ -107,11 +113,13 @@ def triangle_interpolation(triangles, src_vertices, dst_vertices, original_img_c
                     continue
                 center_pixel = np.array([y + 0.5, x + 0.5])
                 if isPointInTriangle(center_pixel, vert_a, vert_b, vert_c):
+                    # Find the barycentric coordinates of the triangle
                     bc = barycentric_coordinates(np.array(center_pixel), np.array(vert_a), np.array(vert_b), np.array(vert_c))
                     src_vert_a = src_vertices[cur_triangle[0]]
                     src_vert_b = src_vertices[cur_triangle[1]]
                     src_vert_c = src_vertices[cur_triangle[2]]
                     src_pt = bc[0] * src_vert_a + bc[1] * src_vert_b + bc[2] * src_vert_c
+                    # use bilinear interpolation to get the pixel value
                     sample_pixel = sample_bilinear(resized_img, src_pt, height, width)
                     dst_img[y, x] = sample_pixel
     return dst_img

@@ -27,20 +27,26 @@ def matplotlib_animation(img_path, recorded_width_seam, recorded_height_seam):
         else:
             white_column_2 = np.full((height, original_width - width - 1, 3), (255, 255, 255), dtype=np.uint8)
         new_img = np.empty((height, width, 3))
+
         for y, x in recorded_width_seam[idx]:
+            # set the removed pixels to black
             img_array[y, x] = (0, 0, 0)
+            # delete the removed pixels
             new_img[y] = np.delete(img_array[y], x, axis=0)
 
-        # Show the seam
         if white_column_2 is not None:
             temp_array = np.append(copy.deepcopy(img_array), white_column_2, axis=1)
         else:
             temp_array = copy.deepcopy(img_array)
+        # show the carved seam first
         im.set_data(temp_array.astype('uint8'))
         figure.canvas.draw()
         figure.canvas.flush_events()
 
         img_array = new_img.copy()
+        # update the image array, fill the carved column with white column
+        # Reason for filling white column: the canvas size should not be changed in matplotlib
+        # If you are going to update the canvas size, it can be really slow
         temp_arr = np.append(copy.deepcopy(new_img), white_column, axis=1)
         im.set_data(temp_arr.astype('uint8'))
         figure.canvas.draw()
@@ -50,6 +56,7 @@ def matplotlib_animation(img_path, recorded_width_seam, recorded_height_seam):
     height, width = width, height
     original_height, original_width = original_width, original_height
 
+    # Do the same thing for the removed horizontal seam
     for idx in range(len(recorded_height_seam)):
         width -= 1
         # Fill the removed row with white row
