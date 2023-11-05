@@ -24,9 +24,22 @@ def main(args):
     if not os.path.exists(cache_path):
         os.makedirs(cache_path)
 
+    if mask_t is not None and (mask_t <= 0 or mask_t >= 1):
+        raise ValueError("Threshold should be 0 < t < 1")
+
     print("[Step 1]: Loading the image...")
 
     original_img = np.array(Image.open(args.image))
+
+    # save the feature map
+    image_width = original_img.shape[1]
+    image_height = original_img.shape[0]
+
+    # seam carving legality check
+    if (args.new_width > image_width) or (args.new_height > image_height):
+        raise ValueError("New image size (width and height) should not be larger than the original image size (width and height)")
+    if (args.new_width < 0) or (args.new_height < 0):
+        raise ValueError("New image size (width and height) should be positive")
 
     print("[Step 2, 3, 4]: Extract the feature map from the CNN using Grad-CAM, and modify the feature map...")
 
@@ -48,18 +61,10 @@ def main(args):
         max_val = np.max(feature_map)
         feature_map = max_val - feature_map
 
-    # save the feature map
-    image_width = original_img.shape[1]
-    image_height = original_img.shape[0]
-    # initialize the seam carving runner
 
+    # initialize the seam carving runner
     seamCarvingRunner = SeamCarving(original_img, feature_map, mask_t=mask_t)
 
-    # seam carving legality check
-    if (args.new_width > image_width) or (args.new_height > image_height):
-        raise ValueError("New image size (width and height) should not be larger than the original image size (width and height)")
-    if (args.new_width < 0) or (args.new_height < 0):
-        raise ValueError("New image size (width and height) should be positive")
 
     print("[Step 5]: Run seam carving...")
 
