@@ -21,7 +21,7 @@ python main.py --image ./Example/dogcat.jpg --text "Find the cat" --mask_t 0.5 -
 - Other examples:
 ```bash
 # Tower example (carve vertically without text)
-python main.py --image ./Example/tower.png --mask_t 0.5 --new_width 400 --new_height 968
+python main.py --image ./Example/tower.png --mask_t 0.5 --new_width 500 --new_height 968
 # Boat example (with text)
 python main.py --image ./Example/pietro.jpg --text "Boat on the river" --mask_t 0.5 --new_width 500 --new_height 400
 # Boat example (without text)
