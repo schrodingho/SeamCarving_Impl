@@ -77,7 +77,3 @@ python main.py --image <input_image_path> [--text <input_text>] [--mask_t <mask_
 4. Viusalization
    - [`matplotlib`](https://matplotlib.org/stable/)
    - [`tkinter`](https://docs.python.org/3/library/tkinter.html)
-
-## Author Info
-- Name: Dinghao Xue
-- StudentID: 5725135
